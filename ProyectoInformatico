@@ -1,0 +1,1266 @@
+Clientes.hpp
+#pragma once
+#include "venta.hpp"
+class Venta;
+using namespace std;
+class Persona{
+public:
+string codigo;
+string nombre;
+string telefono;
+string getTelefono(){
+return this->telefono;
+}
+string getNombre(){
+return this->nombre;
+}
+string getCodigo(){
+return this->codigo;
+}
+void setNombre(string _nombre){
+this->nombre=_nombre;
+}
+protected:
+string correoElectronico;
+private:
+string clave;
+};
+class Cliente: public Persona{
+protected:
+int contarDigitos(int numero) {
+int digitos = 0;
+while (numero != 0) {
+numero /= 10;
+digitos++;
+}
+return digitos;
+}
+std::string validarTelefono(std::istream& is) {
+std::string tel;
+std::getline(is, tel);
+try {
+int numero = std::stoi(tel);
+if (contarDigitos(numero) == 9) {
+return std::to_string(numero);
+} else {
+std::cout << "El número de teléfono debe tener
+9 dígitos. Inténtalo de nuevo." << std::endl;
+return validarTelefono(is);
+}
+} catch (const std::exception& e) {
+std::cerr << "Error: Solo se permiten números.
+Inténtalo de nuevo." << std::endl;
+return validarTelefono(is);
+}
+}
+public:
+vector<Venta*> ventas;
+string direccion;
+string categoria;
+Cliente()=default;
+virtual void ingresarCliente(fstream*
+archivoClientes)=0;
+};
+class ClientesIndividuales: public Cliente{
+public:
+static float descuento;
+string DNI;
+ClientesIndividuales(string nombre,string codigo,string
+categoria,string direccion,string DNI,string telefono){
+this->nombre = nombre;
+this->codigo = codigo;
+this->categoria = categoria;
+this->direccion = direccion;
+this->DNI = DNI;
+this->telefono=telefono;
+}
+virtual void ingresarCliente(fstream* archivoClientes){
+*archivoClientes<<this->nombre<<","<<this-
+>codigo<<","<<this->categoria<<","<<this->direccion<<","<<this-
+>DNI<<","<<" null"<<","<<"Individual"<<","<<this-
+>telefono<<endl;
+}
+void setDni(string dni){
+this->DNI=dni;
+}
+string getDni(){
+return this->DNI;
+}
+friend istream& operator>>(istream&
+is,ClientesIndividuales& cli){
+string telefono=cli.validarTelefono(is);
+return is;
+}
+friend ostream& operator<<(ostream& os, const
+ClientesIndividuales& cli) {
+os <<cli.nombre << " ";
+os <<cli.codigo << " ";
+os <<cli.categoria << " ";
+os <<cli.direccion << " ";
+os <<cli.DNI << " ";
+os <<cli.telefono << " ";
+return os;
+}
+};
+float ClientesIndividuales:: descuento = 0.03;
+class ClientesCorporativos: public Cliente{
+public:
+static float descuento;
+string RUC;
+ClientesCorporativos(string nombre,string codigo,string
+categoria,string direccion,string RUC,string telefono){
+this->nombre = nombre;
+this->codigo = codigo;
+this->categoria = categoria;
+this->direccion = direccion;
+this->RUC = RUC;
+this->telefono=telefono;
+}
+string getRuc(){
+return this->RUC;
+}
+void setRuc(string _ruc){
+this->RUC=_ruc;
+}
+virtual void ingresarCliente(fstream* archivoClientes){
+*archivoClientes<<this->nombre<<","<<this-
+>codigo<<","<<this->categoria<<","<<this->direccion<<","<<"
+null"<<","<<this->RUC<<","<<"Corporativo"<<","<<this-
+>telefono<<endl;
+}
+friend istream& operator>>(istream&
+is,ClientesCorporativos& cli){
+string telefono=cli.validarTelefono(is);
+return is;
+}
+friend ostream& operator<<(ostream& os, const
+ClientesCorporativos& cli) {
+os <<cli.nombre << " ";
+os <<cli.codigo << " ";
+os <<cli.categoria << " ";
+os <<cli.direccion << " ";
+os << cli.RUC << " ";
+os <<cli.telefono << " ";
+return os;
+}
+};
+float ClientesCorporativos:: descuento = 0.10;
+conexión.hpp
+#pragma once
+#include "producto.hpp"
+#include "listaClientes.hpp"
+#include "inventario.hpp"
+#include "listaVendedores.hpp"
+#include "vendedor.hpp"
+#include "listaVentas.hpp"
+using namespace std;
+class Inventario;
+class ListaVendedores;
+class ConexionCSV {
+private:
+fstream* archivoClientes;
+fstream* archivoInventario;
+fstream* archivoVentas;
+fstream* archivoVendedores;
+public:
+ConexionCSV() {
+archivoClientes = new fstream("Clientes.CSV");
+archivoInventario = new fstream("Inventario.CSV");
+archivoVentas = new fstream("Ventas.CSV");
+archivoVendedores = new fstream("Vendedores.CSV");
+try {
+archivoClientes->is_open();
+archivoInventario->is_open();
+archivoVentas->is_open();
+archivoVendedores->is_open();
+} catch (exception e) {
+cout << e.what() <<"no se abrieron archivos"<<
+endl;
+}
+}
+void guardarClientes(ListaClientes* clientes) {
+archivoClientes = new fstream("Clientes.CSV");
+*this-
+>getConexionClientes()<<"nombre,codigo,categoria,direccion,DNI,
+RUC,tipo,telefono"<<endl;
+for (Cliente* cliente:clientes->getClientes()){
+cliente->ingresarCliente(this-
+>getConexionClientes());
+}
+archivoClientes->close();
+archivoClientes=new fstream("Clientes.CSV");
+}
+void guardarInventario(Inventario* inventario) {
+archivoInventario= new fstream("Inventario.CSV");
+*this-
+>getConexionInventario()<<"Cod,Nombre,Cantidad,Precio"<<endl;
+for (Producto* producto:inventario->getProductos())
+{
+producto->ingresarProducto(this-
+>getConexionInventario());
+}
+archivoInventario->close();
+archivoInventario = new fstream("Inventario.CSV");
+}
+void guardarVentas(ListaVentas* ventas) {
+archivoVentas= new fstream("Vendedores.CSV");
+*this-
+>getConexionVentas()<<"codigo,codigoProducto,cantidad,nombreCli
+ente,fecha"<<endl;
+for(Venta* venta:ventas->getVentas()){
+venta->ingresarVenta(this->getConexionVentas());
+}
+archivoVentas->close();
+archivoVentas = new fstream("Ventas.CSV");
+}
+void guardarVendedores(ListaVendedores* vendedores) {
+archivoVendedores= new fstream("Vendedores.CSV");
+*this-
+>getConexionVendedores()<<"codigo,nombre,salario"<<endl;
+for(Vendedor* vendedor: vendedores->getVendedores()){
+vendedor->ingresarVendedor(this-
+>getConexionVendedores());
+}
+archivoVendedores->close();
+archivoVendedores = new fstream("Vendedores.CSV");
+}
+fstream* getConexionClientes() {
+return archivoClientes;
+}
+fstream* getConexionInventario() {
+return archivoInventario;
+}
+fstream* getConexionVentas() {
+return archivoVentas;
+}
+fstream* getConexionVendedores() {
+return archivoVendedores;
+}
+vector<Producto*> listarProducto(){
+vector<Producto*> vectorObj;
+try{
+this->getConexionInventario()->is_open();
+}
+catch(exception& e){
+cout<<"no se abrio archivo en listar
+producto"<<e.what()<<endl;
+}
+string registro;
+getline(*this->getConexionInventario(),registro);
+while (getline(*this->getConexionInventario(),
+registro)) {
+string arrayCampos[4];
+stringstream ss(registro);
+string valorCampo;
+// Leer los campos del registro
+for (int i = 0; i < 4; i++) {
+if (getline(ss, valorCampo, ',')) {
+// Eliminar espacios en blanco adicionales
+arrayCampos[i] = valorCampo;
+}
+}
+// Crear objeto Producto si todos los campos son
+válidos
+if (arrayCampos[0].empty() ||
+arrayCampos[1].empty() || arrayCampos[2].empty() ||
+arrayCampos[3].empty()) {
+cout << "Error: Campo(s) vacío(s)" << endl;
+} else {
+try {
+int cantidad = stoi(arrayCampos[2]);
+double precio = stod(arrayCampos[3]);
+vectorObj.push_back(new
+Producto(arrayCampos[0], arrayCampos[1], cantidad, precio));
+} catch (const exception& e) {
+cout << "Error: Conversión numérica
+fallida" << endl;
+}
+}
+}
+archivoInventario->close();
+return vectorObj;
+}
+vector<Cliente*> listarClientes(){
+vector<Cliente*> vectorObj;
+try{
+this->getConexionClientes()->is_open();
+}
+catch(exception& e){
+cout<<"no se abrio archivo en listar
+Cliente"<<e.what()<<endl;
+}
+string registro;
+getline(*this->getConexionClientes(),registro);
+while(getline(*this->getConexionClientes(),registro)){
+stringstream ss(registro);
+string valorCampo;
+string arrAtributos[8];
+Producto objProducto;
+getline(ss,valorCampo,',');
+arrAtributos[0]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[1]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[2]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[3]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[4]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[5]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[6]=valorCampo;
+getline(ss,valorCampo,',');
+arrAtributos[7]=valorCampo;
+if(arrAtributos[6]=="Individual"){
+vectorObj.push_back(new
+ClientesIndividuales(arrAtributos[0],arrAtributos[1],
+arrAtributos[2],arrAtributos[3],arrAtributos[4],arrAtributos[7]
+));
+}
+if(arrAtributos[6]=="Corporativo"){
+vectorObj.push_back(new
+ClientesCorporativos(arrAtributos[0],arrAtributos[1],
+arrAtributos[2],arrAtributos[3],arrAtributos[5],arrAtributos[7]
+));
+}
+}
+archivoClientes->close();
+return vectorObj;
+}
+vector<Vendedor*> listarVendedores(){
+vector<Vendedor*> vectorObj;
+try{
+this->getConexionVendedores()->is_open();
+}
+catch(exception& e){
+cout<<"no se abrio archivo en listar
+Cliente"<<e.what()<<endl;
+}
+string registro;
+getline(*this->getConexionVendedores(),registro);
+while (getline(*this->getConexionVendedores(),
+registro)) {
+string arrayCampos[3];
+stringstream ss(registro);
+string valorCampo;
+// Leer los campos del registro
+for (int i = 0; i < 3; i++) {
+if (getline(ss, valorCampo, ',')) {
+// Eliminar espacios en blanco adicionales
+arrayCampos[i] = valorCampo;
+}
+}
+// Crear objeto Producto si todos los campos son
+válidos
+if (arrayCampos[0].empty() ||
+arrayCampos[1].empty() || arrayCampos[2].empty()) {
+cout << "Error: Campo(s) vacío(s)" << endl;
+} else {
+try {
+double salario = stod(arrayCampos[2]);
+vectorObj.push_back(new
+Vendedor(arrayCampos[0], arrayCampos[1], salario));
+} catch (const exception& e) {
+cout << "Error: Conversión numérica
+fallida" << endl;
+}
+}
+}
+archivoVendedores->close();
+return vectorObj;
+}
+vector<Venta*> listarVentas(Inventario&
+inventario,ListaClientes& clientes){
+vector<Venta*> vectorObj;
+try{
+this->getConexionVentas()->is_open();
+}
+catch(exception& e){
+cout<<"no se abrio archivo en listar
+Cliente"<<e.what()<<endl;
+}
+string registro;
+getline(*this->getConexionVentas(),registro);
+while (getline(*this->getConexionVentas(), registro)) {
+string arrayCampos[5];
+stringstream ss(registro);
+string valorCampo;
+// Leer los campos del registro
+for (int i = 0; i < 5; i++) {
+if (getline(ss, valorCampo, ',')) {
+// Eliminar espacios en blanco adicionales
+arrayCampos[i] = valorCampo;
+}
+}
+// Crear objeto Producto si todos los campos son
+válidos
+if (arrayCampos[0].empty() ||
+arrayCampos[1].empty() ||
+arrayCampos[2].empty()||arrayCampos[3].empty()||arrayCampos[4].
+empty()) {
+cout << "Error: Campo(s) vacío(s)" << endl;
+} else {
+try {
+int codigo = stoi(arrayCampos[0]);
+int cantidad=stoi(arrayCampos[2]);
+if(clientes.buscarClienteIndividual(arrayCa
+mpos[3])!=nullptr){
+ClientesIndividuales*
+cliente=clientes.buscarClienteIndividual(arrayCampos[3]);
+vectorObj.push_back(new Venta(codigo,
+inventario.buscarProductoCodigo(arrayCampos[1]),
+cantidad,cliente,arrayCampos[4]));
+}
+else if
+(clientes.buscarClienteCoorporativo(arrayCampos[3])!=nullptr)
+{
+ClientesCorporativos*
+cliente=clientes.buscarClienteCoorporativo(arrayCampos[3]);
+vectorObj.push_back(new Venta(codigo,
+inventario.buscarProductoCodigo(arrayCampos[1]),
+cantidad,cliente,arrayCampos[4]));
+}
+} catch (const exception& e) {
+cout << "Error: Conversión numérica
+fallida" << endl;
+}
+}
+}
+archivoVendedores->close();
+return vectorObj;
+}
+~ConexionCSV() {}
+};
+Inventario.cpp
+#include "inventario.hpp"
+Inventario::Inventario(ConexionCSV* _conexion){
+this->conectarServicios(_conexion);
+inventario = conexion->listarProducto();
+}
+void Inventario::guardar(){
+conexion->guardarInventario(this);
+}
+inventario.hpp
+#pragma once
+#include "producto.hpp"
+class ConexionCSV;
+class Inventario{
+private:
+vector<Producto*> inventario;
+ConexionCSV* conexion=nullptr ;
+public:
+void conectarServicios(ConexionCSV* _conexion){
+this->conexion=_conexion;
+}
+Inventario(ConexionCSV* _conexion);
+int buscarProducto(string nombreProducto){
+int i = 0;
+for(Producto* producto : inventario){
+if(producto->getNombre()==nombreProducto){
+return i;
+}
+i++;
+}
+return -1;
+}
+Producto* buscarProductoCodigo(string codigo){
+for(Producto* producto:inventario){
+if(producto->getCod()==codigo){
+return producto;
+}
+}
+return nullptr;
+}
+void agregarProducto(Producto* nuevoProducto){
+inventario.push_back(nuevoProducto);
+}
+vector<Producto*> getProductos(){
+return this->inventario;
+}
+void mostrarProductos(){
+cout<<"COD PRODUCTO CANTIDAD PRECIO"<<endl;
+for(Producto* producto: inventario){
+cout<<*producto;
+}
+}
+void cambiarPrecio(string nombreProducto,double
+nuevoPrecio){
+int idProducto = buscarProducto(nombreProducto);
+inventario[idProducto]->setPrecio(nuevoPrecio);
+}
+void cambiarCantidad(string nombreProducto,int
+nuevaCantidad){
+int idProducto = buscarProducto(nombreProducto);
+inventario[idProducto]->setCantidad(nuevaCantidad);
+}
+void guardar();
+};
+#include "conexion.hpp"
+listaClientes.cpp
+#include "listaClientes.hpp"
+ListaClientes::ListaClientes(ConexionCSV* _conexion){
+this->conectarServicios(_conexion);
+listaClientes = conexion->listarClientes();
+}
+void
+ListaClientes::agregarClienteCoorporativo(ClientesCorporativos*
+_cliente){
+if(listaClientes.size()<=6){
+while(buscarClienteCoorporativo(_cliente-
+>getNombre(),_cliente->getRuc())!=nullptr){
+string nombre;
+string ruc;
+cout<<"nombre o ruc ya tomados"<<endl;
+cout<<"ingrese nombre"<<endl;
+getline(cin,nombre);
+cout<<"ingrese ruc"<<endl;
+getline(cin,ruc);
+_cliente->setRuc(ruc);
+_cliente->setNombre(nombre);
+}
+while ( !(_cliente->categoria=="A"||_cliente-
+>categoria=="B"||_cliente->categoria=="C"||_cliente-
+>categoria=="D"))
+{
+string cat;
+getline(cin,cat);
+_cliente->categoria=cat;
+}
+if(_cliente->getTelefono().length()!=9){
+cin>>*_cliente;
+}
+listaClientes.push_back(_cliente);
+}
+}
+void
+ListaClientes::agregarClienteIndividual(ClientesIndividuales*
+_cliente){
+if (listaClientes.size()<=6){
+while(buscarClienteIndividual(_cliente-
+>getNombre(),_cliente->getDni())!=nullptr){
+string nombre;
+string dni;
+cout<<"nombre o dni ya tomados"<<endl;
+cout<<"ingrese nombre"<<endl;
+getline(cin,nombre);
+cout<<"ingrese dni"<<endl;
+getline(cin,dni);
+_cliente->setDni(dni);
+_cliente->setNombre(nombre);
+}
+while ( !(_cliente->categoria=="A"||_cliente-
+>categoria=="B"||_cliente->categoria=="C"||_cliente-
+>categoria=="D"))
+{
+string cat;
+getline(cin,cat);
+_cliente->categoria=cat;
+}
+if(_cliente->getTelefono().length()!=9){
+cin>>*_cliente;
+}
+listaClientes.push_back(_cliente);
+}
+}
+void ListaClientes::guardar(){
+conexion->guardarClientes(this);
+}
+void ListaClientes::mostrarVentasClienteIndividual(string
+nombre,string dni){
+if(this->buscarClienteIndividual(nombre,dni)!=nullptr){
+ClientesIndividuales* cliente=this-
+>buscarClienteIndividual(nombre,dni);
+for (Venta* venta:cliente->ventas){
+cout<<*venta<<endl;
+}
+}
+else{
+cout<<"no encontrado el cliente"<<endl;
+}
+}
+void ListaClientes::mostrarVentasClienteCoorporativo(string
+nombre,string ruc){
+if(this->buscarClienteCoorporativo(nombre,ruc)!=nullptr){
+ClientesCorporativos* cliente=this-
+>buscarClienteCoorporativo(nombre,ruc);
+for (Venta* venta:cliente->ventas){
+cout<<*venta<<endl;
+}
+}
+else{
+cout<<"no encontrado el cliente"<<endl;
+}
+}
+listaClientes.hpp
+#pragma once
+#include "clientes.hpp"
+#include "venta.hpp"
+using namespace std;
+class ConexionCSV;
+class ListaClientes{
+private:
+vector<Cliente*> listaClientes;
+ConexionCSV* conexion=nullptr ;
+void conectarServicios(ConexionCSV* _conexion){
+this->conexion=_conexion;
+}
+public:
+ClientesIndividuales* buscarClienteIndividual(string
+nombre,string dni){
+for(Cliente* cliente:listaClientes){
+ClientesIndividuales*
+clienteIndividual=dynamic_cast<ClientesIndividuales*>(cliente);
+if(clienteIndividual){
+if (clienteIndividual->nombre==nombre &&
+clienteIndividual->DNI==dni)
+{
+return clienteIndividual;
+}
+}
+}
+cout<<"cliente no encontrado"<<endl;
+return nullptr;
+}
+ClientesCorporativos* buscarClienteCoorporativo(string
+nombre,string ruc){
+for(Cliente* cliente:listaClientes){
+ClientesCorporativos*
+clientesCoorporativos=dynamic_cast<ClientesCorporativos*>(clien
+te);
+if(clientesCoorporativos){
+if (clientesCoorporativos->nombre==nombre
+&& clientesCoorporativos->RUC==ruc)
+{
+return clientesCoorporativos;
+}
+}
+}
+cout<<"cliente no encontrado"<<endl;
+return nullptr;
+}
+ClientesIndividuales* buscarClienteIndividual(string
+nombre){
+for(Cliente* cliente:listaClientes){
+ClientesIndividuales*
+clienteIndividual=dynamic_cast<ClientesIndividuales*>(cliente);
+if(clienteIndividual){
+if (clienteIndividual->nombre==nombre )
+{
+return clienteIndividual;
+}
+}
+}
+return nullptr;
+}
+ClientesCorporativos* buscarClienteCoorporativo(string
+nombre){
+for(Cliente* cliente:listaClientes){
+ClientesCorporativos*
+clientesCoorporativos=dynamic_cast<ClientesCorporativos*>(clien
+te);
+if(clientesCoorporativos){
+if (clientesCoorporativos->nombre==nombre )
+{
+return clientesCoorporativos;
+}
+}
+}
+return nullptr;
+}
+ListaClientes(ConexionCSV* _conexion);
+void agregarClienteCoorporativo(ClientesCorporativos*
+_cliente);
+void agregarClienteIndividual(ClientesIndividuales*
+_cliente);
+void guardar();
+vector<Cliente*> getClientes(){
+return this->listaClientes;
+}
+void mostrarClientesCoorporativos(){
+cout<<"nombre codigo categoria direccion R
+UC telefono"<<endl;
+for(Cliente* cliente:this->listaClientes){
+ClientesCorporativos*
+clientesCoorporativos=dynamic_cast<ClientesCorporativos*>(clien
+te);
+if(clientesCoorporativos){
+cout<<*clientesCoorporativos<<endl;
+}
+}
+}
+void mostrarClientesIndividuales() {
+cout<<"nombre codigo categoria direccion d
+ni telefono"<<endl;
+for (Cliente* cliente : this->listaClientes) {
+ClientesIndividuales* clientesIndividuales =
+dynamic_cast<ClientesIndividuales*>(cliente);
+if (clientesIndividuales) {
+cout << *clientesIndividuales << endl;
+}
+}
+}
+void mostrarVentasClienteIndividual(string
+nombre,string dni);
+void mostrarVentasClienteCoorporativo(string
+nombre,string ruc);
+};
+#include "conexion.hpp"
+listaVendedores.cpp
+#include "listaVendedores.hpp"
+ListaVendedores::ListaVendedores(ConexionCSV* _conexion){
+this->conectarServicios(_conexion);
+vendedores = _conexion->listarVendedores();
+}
+void ListaVendedores::agregarVendedor(Vendedor* vendedor){
+while(this->buscarVendedor(vendedor-
+>getNombre())!=nullptr){
+string nombreNuevo;
+cout<<"nombre ya tomado, escoja otro"<<endl;
+getline(cin,nombreNuevo);
+vendedor->setNombre(nombreNuevo);
+}
+this->vendedores.push_back(vendedor);
+}
+Vendedor* ListaVendedores::buscarVendedor(string nombre){
+for (Vendedor* vendedor: this->vendedores){
+if(vendedor->getNombre()==nombre){
+return vendedor;
+}
+}
+return nullptr;
+}
+void ListaVendedores::guardar(){
+conexion->guardarVendedores(this);
+}
+listaVendedores.hpp
+#pragma once
+#include "vendedor.hpp"
+class ConexionCSV;
+class ListaVendedores
+{
+private:
+vector<Vendedor*> vendedores;
+ConexionCSV* conexion=nullptr ;
+void conectarServicios(ConexionCSV* _conexion){
+this->conexion=_conexion;
+}
+Vendedor* buscarVendedor(string nombre);
+public:
+ListaVendedores(ConexionCSV* conexion);
+void guardar();
+void agregarVendedor(Vendedor* vendedor);
+vector<Vendedor*> getVendedores(){
+return this->vendedores;
+}
+void mostrarVendedores(){
+cout<<"codigo nombre salario"<<endl;
+for(auto vendedor:this->vendedores){
+cout<<*vendedor<<endl;
+}
+}
+};
+#include "conexion.hpp"
+listaVentas.cpp
+#include "listaVentas.hpp"
+ListaVentas::ListaVentas(ConexionCSV* _conexion,Inventario&
+inventario,ListaClientes& clientes){
+this->conectarServicios(_conexion);
+listaVentas= conexion->listarVentas(inventario,clientes);
+}
+void ListaVentas::agregarVentaClienteIndividual(ListaClientes&
+clientes,Inventario& inventario){
+string nombre;
+string dni;
+string nombreProducto;
+int cantidad;
+cout<<"ingrese nombre del cliente a generar venta"<<endl;
+getline(cin,nombre);
+cout<<"ingrese dni del cliente"<<endl;
+getline(cin,dni);
+cout<<"ingrese el nombre del producto a vender"<<endl;
+getline(cin,nombreProducto);
+cin.ignore();
+cout<<"ingrese cantidad del producto a vender"<<endl;
+cin>>cantidad;
+if (clientes.buscarClienteIndividual(nombre,dni)!=nullptr
+and
+inventario.getProductos()[inventario.buscarProducto(nombreProdu
+cto)]){
+ClientesIndividuales*
+cliente=clientes.buscarClienteIndividual(nombre,dni);
+Producto*
+producto=inventario.getProductos()[inventario.buscarProducto(no
+mbreProducto)];
+this->listaVentas.push_back(new Venta(this-
+>listaVentas[this->listaVentas.size()-1]-
+>getCodigo(),producto,cantidad,cliente));
+cliente->ventas.push_back(this->listaVentas[this-
+>listaVentas.size()-1]);
+}
+else{
+cout<<"cliente o producto no encontrado"<<endl;
+}
+}
+void
+ListaVentas::agregarVentaClienteCoorporativo(ListaClientes&
+clientes,Inventario& inventario){
+string nombre;
+string ruc;
+string nombreProducto;
+int cantidad;
+cout<<"ingrese nombre del cliente a generar venta"<<endl;
+getline(cin,nombre);
+cout<<"ingrese ruc del cliente"<<endl;
+getline(cin,ruc);
+cout<<"ingrese el nombre del producto a vender"<<endl;
+getline(cin,nombreProducto);
+cin.ignore();
+cout<<"ingrese cantidad del producto a vender"<<endl;
+cin>>cantidad;
+if (clientes.buscarClienteCoorporativo(nombre,ruc)!=nullptr
+and
+inventario.getProductos()[inventario.buscarProducto(nombreProdu
+cto)]){
+Cliente*
+cliente=clientes.buscarClienteCoorporativo(nombre,ruc);
+Producto*
+producto=inventario.getProductos()[inventario.buscarProducto(no
+mbreProducto)];
+this->listaVentas.push_back(new Venta(this-
+>listaVentas[this->listaVentas.size()-1]-
+>getCodigo(),producto,cantidad,cliente));
+cliente->ventas.push_back(this->listaVentas[this-
+>listaVentas.size()-1]);
+}
+else{
+cout<<"cliente o producto no encontrado"<<endl;
+}
+}
+void ListaVentas::guardar(){
+conexion->guardarVentas(this);
+}
+listaVentas.hpp
+#pragma once
+#include "conexion.hpp"
+class ListaVentas
+{
+private:
+vector<Venta*> listaVentas;
+ConexionCSV* conexion=nullptr;
+void conectarServicios(ConexionCSV* _conexion){
+this->conexion=_conexion;
+}
+public:
+ListaVentas(ConexionCSV* _conexion,Inventario&
+inventario,ListaClientes& clientes);
+void agregarVentaClienteIndividual(ListaClientes&
+clientes,Inventario& inventario);
+void agregarVentaClienteCoorporativo(ListaClientes&
+clientes,Inventario& inventario);
+void mostrarVentas(){
+for(Venta* venta:listaVentas){
+cout<<venta<<endl;
+}
+}
+vector<Venta*> getVentas(){
+return this->listaVentas;
+}
+void guardar();
+};
+producto.hpp
+#pragma once
+using namespace std;
+class Producto{
+private:
+string nombre;
+int cantidad;
+double precio;
+string cod;
+public:
+Producto() = default;
+Producto(string _cod,string nombre, int cantidad, double
+precio){
+this->cod=_cod;
+this->nombre = nombre;
+this->cantidad = cantidad;
+this->precio = precio;
+}
+string getCod(){
+return this->cod;
+}
+string getNombre(){
+return this->nombre;
+}
+int getCantidad(){
+return this->cantidad;
+}
+double getPrecio(){
+return this->precio;
+}
+void setNombre(string nombre){
+this->nombre = nombre;
+}
+void setCantidad(int cantidad){
+this->cantidad = cantidad;
+}
+void setPrecio(double precio){
+this->precio = precio;
+}
+void ingresarProducto(fstream *inventarioCSV){
+try{
+if(inventarioCSV->is_open()){
+*inventarioCSV<<this->cod<<","<<this-
+>nombre<<','<<this->cantidad<<','<<this->precio<<endl;
+}
+}
+catch(exception& e){
+cerr<<"Excepcion capturada: "<<e.what()<<endl;
+}
+}
+friend ostream& operator<<(ostream& os,const Producto&
+objeto){
+os<<objeto.cod<<" "<<objeto.nombre<<" "<<objeto.
+precio<<endl;
+return os;
+}
+};
+vendedor.hpp
+#pragma once
+#include "clientes.hpp"
+class Vendedor : public Persona {
+public:
+double salario;
+Vendedor(string _codigo, string _nombre, double _salario) {
+this->codigo = _codigo;
+this->nombre = _nombre;
+this->salario = _salario;
+}
+friend ostream& operator<<(ostream& os, const Vendedor&
+vendedor) {
+os << vendedor.codigo << " ";
+os << vendedor.nombre << " ";
+os << vendedor.salario;
+return os;
+}
+void ingresarVendedor(fstream* archivoVendedores){
+*archivoVendedores<<this->codigo<<","<<this-
+>getNombre()<<","<<this->salario<<endl;
+}
+};
+venta.cpp
+#include "venta.hpp"
+Venta::Venta(int codigo, Producto* prod, int cantidad, Cliente*
+cli){
+this->codigo = codigo;
+this->codigoProducto=prod->getCod();
+this->nombreProducto = prod->getNombre();
+this->cantidad = cantidad;
+this->precioProducto = prod->getPrecio();
+this->nombreCliente = cli->nombre;
+this->subTotal = cantidad * precioProducto;
+time_t ahora = time(nullptr);
+char cadena[50];
+strftime(cadena,sizeof(cadena),"%Y-%m-
+%d",localtime(&ahora));
+this->fecha = cadena;
+cli->ventas.push_back(this);
+}
+Venta::Venta(int codigo, Producto* prod, int cantidad, Cliente*
+cli,string fecha){
+this->codigo = codigo;
+this->codigoProducto=prod->getCod();
+this->nombreProducto = prod->getNombre();
+this->cantidad = cantidad;
+this->precioProducto = prod->getPrecio();
+this->nombreCliente = cli->nombre;
+this->subTotal = cantidad * precioProducto;
+this->fecha = fecha;
+cli->ventas.push_back(this);
+}
+venta.hpp
+#pragma once
+using namespace std;
+#include <ctime>
+class Cliente;
+#include "producto.hpp"
+class Venta{
+private:
+int codigo;
+string codigoProducto;
+string nombreProducto;
+int cantidad;
+double precioProducto;
+double subTotal;
+string nombreCliente;
+string fecha;
+public:
+Venta(int codigo, Producto* prod, int cantidad,
+Cliente* cli);
+Venta(int codigo, Producto* prod, int cantidad,
+Cliente* cli,string fecha);
+int getCodigo(){
+return this->codigo;
+}
+string getCodigoProducto() {
+return codigoProducto;
+}
+string getNombreProducto() {
+return nombreProducto;
+}
+int getCantidad() {
+return cantidad;
+}
+double getPrecioProducto() {
+return precioProducto;
+}
+double getSubTotal() {
+return subTotal;
+}
+string getNombreCliente() {
+return nombreCliente;
+}
+string getFecha() {
+return fecha;
+}
+void ingresarVenta(fstream* archivoVentas){
+try{
+if(archivoVentas->is_open()){
+*archivoVentas<<to_string(this-
+>codigo)<<","<<this->codigoProducto<<','<<this-
+>cantidad<<','<<this->nombreCliente<<','<<this->fecha<<endl;
+}
+}
+catch(exception& e){
+cout<<"Excepcion capturada: "<<e.what()<<endl;
+}
+}
+friend ostream& operator<<(ostream& os,Venta& venta){
+os<<" VENTA"<<venta.codigo<<endl;
+os<<"CLIENTE "<<venta.nombreCliente<<endl;
+os<<"COD PRODUCTO CANTIDAD PRECIO_UNT SUBT
+OTAL"<<endl;
+os<<venta.getCodigoProducto()<<" "<<venta.getNomb
+reProducto()<<" "<<venta.getCantidad()<<" "<<venta.getPrec
+ioProducto()<<" "<<venta.getSubTotal()<<endl;
+return os;
+}
+};
+#include "clientes.hpp"
+Main.cpp
+#include <iostream>
+#include <cstring>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <typeinfo>
+#include "clientes.hpp"
+#include "conexion.hpp"
+#include "inventario.hpp"
+#include "listaClientes.hpp"
+#include "vendedor.hpp"
+#include "listaVendedores.hpp"
+#include "venta.hpp"
+#include "venta.cpp"
+#include "listaVentas.hpp"
+#include "inventario.cpp"
+#include "listaClientes.cpp"
+#include "listaVendedores.cpp"
+#include "listaVentas.cpp"
+using namespace std;
+int main()
+{
+ConexionCSV* conexion=new ConexionCSV();
+Inventario nuevoInventario(conexion);
+ListaClientes listaClientes(conexion);
+ListaVendedores listavendedores(conexion);
+ListaVentas
+listaventas(conexion,nuevoInventario,listaClientes);
+int opcion;
+do
+{
+cout << "MENU" << endl;
+cout << "1. NUEVO CLIENTE" << endl;
+cout << "2. BUSCAR CLIENTE" << endl;
+cout << "3. NUEVO VENDEDOR" << endl;
+cout << "4. NUEVO PRODUCTO" << endl;
+cout << "5. VENTAS" << endl;
+cout << "6. LISTA DE CLIENTES" << endl;
+cout << "7. LISTA DE VENDEDORES" << endl;
+cout << "8. SALIR" << endl;
+cout << "Ingrese una opción: ";
+cin >> opcion;
+if (opcion == 1)
+{
+int rpta;
+cout<<"Si desea ingresar un cliente corporativo
+presione [1], si quiere ingresar un cliente individual presione
+[2]"<<endl;
+cin>>rpta;
+if(rpta == 1){
+string nombre;
+string codigo;
+string categoria;
+string direccion;
+string ruc;
+string telefono;
+cout<<"Ingrese el codigo: "<<endl;
+cin>>codigo;
+cout<<"Ingrese el nombre: "<<endl;
+cin>>nombre;
+cout<<"Ingrese la categoria: "<<endl;
+cin>>categoria;
+cout<<"Ingrese la direccion: "<<endl;
+cin>>direccion;
+cout<<"Ingrese el ruc: "<<endl;
+cin>>ruc;
+cout<<"ingrese telefono:"<<endl;
+cin>>telefono;
+listaClientes.agregarClienteCoorporativo(new
+ClientesCorporativos(nombre,codigo,categoria,direccion,ruc,tele
+fono));
+}
+else{
+string nombre;
+string codigo;
+string categoria;
+string direccion;
+string DNI;
+string telefono;
+cout<<"Ingrese el nombre: "<<endl;
+cin>>nombre;
+cout<<"Ingrese el codigo: "<<endl;
+cin>>codigo;
+cout<<"Ingrese la categoria: "<<endl;
+cin>>categoria;
+cout<<"Ingrese la direccion: "<<endl;
+cin>>direccion;
+cout<<"Ingrese el dni: "<<endl;
+cin>>DNI;
+cout<<"ingrese telefono:"<<endl;
+cin>>telefono;
+listaClientes.agregarClienteIndividual(new
+ClientesIndividuales(nombre,codigo,categoria,direccion,DNI,tele
+fono));
+}
+}
+else if (opcion == 2)
+{
+int rpta;
+cout<<"Si desea buscar un cliente corporativo
+presione [1], si quiere buscar un cliente individual presione
+[2]"<<endl;
+cin>>rpta;
+if (rpta==1){
+string nombre;
+string ruc;
+cout<<"ingrese nombre: "<<endl;
+cin>>nombre;
+cout<<"ingrese ruc:"<<endl;
+cin>>ruc;
+listaClientes.buscarClienteCoorporativo(nombre,
+ruc);
+}else{
+string nombre;
+string dni;
+cout<<"ingrese nombre: "<<endl;
+cin>>nombre;
+cout<<"ingrese ruc:"<<endl;
+cin>>dni;
+listaClientes.buscarClienteCoorporativo(nombre,
+dni);
+}
+}
+else if (opcion == 3)
+{
+string codigo;
+string nombre;
+double salario;
+cout<<"Ingrese el codigo del vendedor: ";
+cin.ignore();
+getline(cin,codigo);
+cout << "Ingrese el nombre del vendedor: ";
+cin.ignore();
+getline(cin, nombre);
+cout << "Ingrese el salario del vendedor: ";
+cin >> salario;
+listavendedores.agregarVendedor(new
+Vendedor(codigo,nombre,salario));
+listavendedores.guardar();
+}
+else if (opcion == 4)
+{
+string cod;
+string nombre;
+int cantidad;
+double precio;
+cout << "Ingrese el codigo del producto: ";
+cin.ignore();
+getline(cin, cod);
+cout << "Ingrese el nombre del producto: ";
+cin.ignore();
+getline(cin, nombre);
+cout << "Ingrese la cantidad del producto: ";
+cin >> cantidad;
+cout << "Ingrese el precio del producto: ";
+cin >> precio;
+nuevoInventario.agregarProducto(new
+Producto(cod,nombre,cantidad,precio));
+}
+else if (opcion == 5)
+{
+int rpta;
+do {
+cout << "----- MENU -----" << endl;
+cout << "1. Agregar venta Cliente Individual"
+<< endl;
+cout << "2. Agregar venta Cliente
+Coorporativo"<<endl;
+cout << "2. Mostrar ventas" << endl;
+cout << "3. Mostar ventas de un cliente"<<endl;
+cout << "0. Salir" << endl;
+cout << "Ingrese una opción: ";
+cin >> rpta;
+if (rpta == 1) {
+listaventas.agregarVentaClienteIndividual(l
+istaClientes,nuevoInventario);
+} else if (rpta == 2) {
+listaventas.agregarVentaClienteCoorporativo
+(listaClientes,nuevoInventario);
+} else if(rpta==3){
+listaventas.mostrarVentas();
+}
+else if (rpta == 0) {
+} else {
+cout << "Opción inválida. Intente de
+nuevo." << endl;
+}
+cout << endl;
+} while (rpta != 0);
+}
+else if (opcion == 6)
+{
+cout<<"clientes coorporativos"<<endl;
+listaClientes.mostrarClientesCoorporativos();
+cout<<"clientes individuales"<<endl;
+listaClientes.mostrarClientesIndividuales();
+}
+else if (opcion == 7)
+{
+listavendedores.mostrarVendedores();
+}
+else if (opcion == 8)
+{
+cout << "Saliendo del programa..." << endl;
+}
+else
+{
+cout << "Opción inválida. Intente nuevamente." <<
+endl;
+}
+cout << endl;
+} while (opcion != 8);
+listaClientes.guardar();
+listavendedores.guardar();
+listaventas.guardar();
+nuevoInventario.guardar();
